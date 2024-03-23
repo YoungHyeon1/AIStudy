@@ -8,123 +8,12 @@
 # (word2vec) python rnn_m21.py i love    # Prediction 시
 
 import numpy as np
-import nltk
-import torch, sys
 import torch.nn as nn
+import torch, sys
 import torch.optim as optim
-import torch.nn.functional as F
 from tqdm import tqdm
-import torch.nn.utils.rnn as rnn_utils
-
-#=====================================================
-# Input Target batch 데이터 생성 함수
-# #===================================================
-def make_batch(sentences):
-  input_batch = []
-  target_batch = []
-
-  for sen in sentences:
-    word = sen.split()
-    input = [word_dict[n] for n in word[:-1]]
-    target = word_dict[word[-1]]
-
-    input_batch.append(np.eye(n_class)[input])  # One-Hot Encoding
-    target_batch.append(target)
-  
-  return input_batch, target_batch
-
-
-#=======================================================
-# windows data creation
-#=======================================================
-def make_windows(cleaned_sentences, windowSize=2) :
-  MASK_TOKEN = "<MASK>"
-
-          # 각 문장의 토큰 리스트를 순회하면서 지정된 크기(길이 5개)의 window로 묶어주기
-          # lambda 매개변수 : 표현식의 예:
-          # matrix = [[1, 2], [3, 4], [5, 6]]
-          # squared = [num ** 2 for row in matrix for num in row]
-          # print(squared)  # Output: [1, 4, 9, 16, 25, 36]
-          # 2차원-->1차원으로 펴기
-  flatten = lambda outer_list: [item for inner_list in outer_list for item in inner_list]
-          # nltk.ngrams([1,2,3,4,5], 3)) ===> [(1, 2, 3), (2, 3, 4), (3, 4, 5)]
-          # 전체 cleaned_sentenses로부터, 
-          
-          # cleaned_sentences로부터 가져온 각 문장에서 5개의 단어(토큰)로 이루어진 windowx 리스트를 가져와라 
-          
-          # cleaned_sentences에서 sentence를 하나씩 가져와서 nltk.ngram을 통해 
-          # sentence 맨 앞과 맨 뒤에 각각 2개씩의 <MASK> 토큰을 추가한 후, 5개 단어 길이의 wind리스트로
-          # 바꾼 후, flatten 하라
-          # I iove you --> [<MASK>, <MASK>, 'I', 'love', 'you',<MASK>, <MASK>]
-  windows = flatten(nltk.ngrams(sentence[:-windowSize].split(' '),windowSize + 1) \
-                                      for sentence in tqdm(cleaned_sentences))
-  return windows
-
-#=====================================================
-# TextRNN Class
-#=====================================================
-class TextRNN(nn.Module):
-  forward_pass = 0
-  
-  def __init__(self):
-    super(TextRNN, self).__init__()
-
-          # dropout 옵션은 hidden layer갯숫가 1 초과일때만 사용
-    #self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden, dropout=0.3)
-          # input_size=n_class : 입력값을 클래스 크기만큼 길이의 one-hot vector로 할거니까
-          # hidden_size : hidden layer node 수 = 5 로 미리 정함
-    self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden)
-          # trainable weight matrix initialized with random values
-          # nn.Parameter() : 해당 파라미터가 학습시에 참여하는 weight가 됨
-    self.W = nn.Parameter(torch.randn([n_hidden, n_class]).type(dtype)) # n_hiddex * n_class 크기 matrix
-          # n_class 크기 bias용 vector  
-    self.b = nn.Parameter(torch.randn([n_class]).type(dtype))
-          # raw 출력값들에 적용할 함수
-    self.Softmax = nn.Softmax(dim=1)
-
-  def add_count (self, n=1):
-    self.forward_pass += n
-    
-  def reset_count (self):
-    self.forward_pass = 0
-    
-      # X : 입력 시퀀에서의 변하는 X값
-      # hidden : 계속 update 되는 hidden matrix 값
-      # 이 forward 함수는 epoch 횟수만큼 호출, 
-  def forward(self, hidden, X):
-          # input tensor to have a shape of (seq_len, batch, feature), 
-          # batch와 seq_length 위치를 교체
-          #          이 예제의 경우 (seq_len, batch_size, hidden_size)형식으로 리턴되는데
-          #           (2, 11, 5) 크기가 됨
-    X = X.transpose(0, 1)
-          # hidden_vectors: 각 time step 마다의 hidden vector 노드들의 값(h(t))들 저장
-          #           나중에 back-propagation시에 gradient 값 계산을 위하여 저장해 둠
-          #           (seq_len, batch, hidden_size) = (2, 11, 5)
-          # hidden : 마지막 time step 직후의  hidden vector 값 
-          #           hidden layer가 다층일 경우에는 layer 층의 갯수 만큼 값을 가짐
-
-
-        # 한번의 호출로 한 batch, 모든 시퀀스, 모든 히든벡터에 대한 벡터값들을 리턴
-        #   2 시퀀스 * 11 batch * 5 vector nodes 값을
-
-    hidden_vectors, hidden = self.rnn(X, hidden)    # 입력층 batch 값들과 히든 벡터를 이용하여
-                                                    # 히든 벡터 값들을 계산
-    print(f'\n*** hidden_vectors[{self.forward_pass}]: {hidden_vectors}')                                        
-    print(f'\n*** hidden[{self.forward_pass}]: {hidden}')                                        
-
-    last_hidden_vector = hidden_vectors[-1]   # many-to-one 모델이므로 hidden 노드중 마지막 노드값만 필요
-
-            # torch.mm() :  matrix multiplication, 실제 계산 출력값을 여기서 리턴
-    model = torch.mm(last_hidden_vector, self.W) + self.b  
-    
-    self.add_count(1)
-    
-    return model
-
-  def print_output_softmax(self, output):
-        softmax_values = self.Softmax(output)
-        print("Softmax Results:", softmax_values)
-        
+from TextRNN import TextRNN
+from utils import make_batch
 #=====================================================
 # Rnn Training 함수
 #=====================================================
@@ -142,9 +31,9 @@ def train_rnn(totalEpoch) :
     for i in range(len(input_batch)//batch_size):
       inputs = input_batch[i*batch_size:(i+1)*batch_size]
       targets = target_batch[i*batch_size:(i+1)*batch_size]
-      inputs_padded = rnn_utils.pad_sequence(inputs, batch_first=True)
+      # inputs_padded = rnn_utils.pad_sequence(inputs, batch_first=True)
       # targets_padded = rnn_utils.pad_sequence(targets, batch_first=True)
-      output = model(hidden, inputs_padded)
+      output = model(hidden, inputs)
     #if epoch == totalEpoch-1 :
       print(f'\n*** Epoch # {epoch}일 때 학습 직후 배치데이터 전체에 대한 output layer 출력값 output:\n{output}')
       print('-'*80)
@@ -175,10 +64,8 @@ sentences = [
 
 windowSize = 2
 dtype = torch.float
-
 word_list = list(set(" ".join(sentences).split()))
 word_list.sort()    # 매 실행시마다 동일한 word index 번호를 갖게
-
 word_dict = {w: i for i, w in enumerate(word_list)}
 print('\n','='*80)
 print("word dictionary:",word_dict,'\n')
@@ -188,7 +75,7 @@ n_class = len(word_dict)
 # [2] Input, Target batch data 생성
 #=====================================================
       # sentence 문장들로 부터 입력tensor, 출력tensor 구함
-input_batch, target_batch = make_batch(sentences)
+input_batch, target_batch = make_batch(sentences, word_dict)
 input_batch = torch.tensor(np.array(input_batch), dtype=torch.float32, requires_grad=True)
 print('\n','='*80)
 print("input batch:",input_batch)
@@ -198,18 +85,12 @@ print('\n','='*80)
 print("target batch:",target_batch)
 
 #=====================================================
-# [3] TextRNN model 생성 및 학습
-#=====================================================
-            # 저장해야할 hidden matrix의 줄 수는 입력 시퀀스 길이와 같아야 한다
-            #   왜냐하면 "입력시퀀스 크기"="bqtch_size" 이고, batch 회수 만큼의 입력 후에 gradient를 업데이트 하니까
-batch_size = min(len(sentences), 32)
-n_hidden = 10  # 은닉층의 길이
-model = TextRNN()                 # rnn 모델 객체 생성
-
-#=====================================================
 # main 
 #=====================================================
 if __name__ == "__main__" :
+  batch_size = min(len(sentences), 32)
+  n_hidden = 10  # 은닉층의 길이
+  model = TextRNN(n_class, n_hidden)                 # rnn 모델 객체 생성
   print('\n','='*80)
   print('\nUsage [학습]: python rnn_m21.py train 100')
   print('Usage [Prediction]: python rnn_m21.py word1 word2\n')
@@ -248,13 +129,13 @@ if __name__ == "__main__" :
       sentence = []
       sentence.append(queryStr)
       
-      query_input_batch, query_target_batch = make_batch(sentence)
+      query_input_batch, query_target_batch = make_batch(sentence, word_dict)
       input_batch = torch.tensor(np.array(query_input_batch), dtype=torch.float32, requires_grad=False)
       
       print('\n','-'*80)
       print("query input batch:",input_batch)
       
-      model = TextRNN()  # Initialize the model the same way you did before
+      # model = TextRNN()  # Initialize the model the same way you did before
       model.load_state_dict(torch.load('text_rnn.pth')) # 저장된 파일로 부터 모델 및 파라미터  불러오기
       model.eval()
 
@@ -269,6 +150,7 @@ if __name__ == "__main__" :
       print(f'학습용 sentences : {sentences}\n')
       print(f'predict 결과:{predict}')
       print(f'*** {sys.argv[1]}  {sys.argv[2]} ==> {number_dict[predict.item()]}')
+
       
     
   
