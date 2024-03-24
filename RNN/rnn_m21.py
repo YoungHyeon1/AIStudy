@@ -14,11 +14,12 @@ import torch.optim as optim
 from tqdm import tqdm
 from TextRNN import TextRNN
 from utils import make_batch
+from torch.nn.utils.rnn import pad_sequence
 #=====================================================
 # Rnn Training 함수
 #=====================================================
 def train_rnn(totalEpoch) :  
-  criterion = nn.CrossEntropyLoss() # 손실함수를 CrossEntropy로 선택
+  criterion = nn.CrossEntropyLoss(ignore_index=-1) # 손실함수를 CrossEntropy로 선택
   optimizer = optim.Adam(model.parameters(), lr=0.01) # Optimizer를 Adam으로 선택
 
   #---------------학습 500회 
@@ -31,14 +32,14 @@ def train_rnn(totalEpoch) :
     for i in range(len(input_batch)//batch_size):
       inputs = input_batch[i*batch_size:(i+1)*batch_size]
       targets = target_batch[i*batch_size:(i+1)*batch_size]
-      # inputs_padded = rnn_utils.pad_sequence(inputs, batch_first=True)
-      # targets_padded = rnn_utils.pad_sequence(targets, batch_first=True)
-      output = model(hidden, inputs)
+      inputs_padded = pad_sequence(inputs, batch_first=True)
+      targets_padded = pad_sequence(targets, batch_first=True, padding_value=-1)
+      output = model(hidden, inputs_padded)
     #if epoch == totalEpoch-1 :
       print(f'\n*** Epoch # {epoch}일 때 학습 직후 배치데이터 전체에 대한 output layer 출력값 output:\n{output}')
       print('-'*80)
 
-      loss = criterion(output, targets)
+      loss = criterion(output, targets_padded)
 
       if totalEpoch <= 3 or (epoch % 100) == 0:
             print('Epoch:', '%04d' % (epoch), 'cost =', '{:.6f}'.format(loss))
@@ -62,9 +63,34 @@ sentences = [
   'I want dogs', 'he want cats', 'you enjoy money'
 ]
 
+english_sentences = [
+    "Hello", "Good morning", "Good evening", "How are you", "I am fine",
+    "What is your name", "My name is John", "Nice to meet you", "See you later", "Thank you",
+    "You are welcome", "Excuse me", "I am sorry", "Can you help me", "I do not understand",
+    "Please speak slowly", "Could you repeat that", "What time is it", "How much is this", "Where is the restroom",
+    "I need a doctor", "Call the police", "I am hungry", "I am thirsty", "I am tired",
+    "What is this", "That is great", "Congratulations", "Happy birthday", "Happy new year",
+    "Merry Christmas", "Good luck", "Take care", "Have a nice trip", "How old are you",
+    "Are you married", "Do you have children", "I like it", "I do not like it", "This is difficult",
+    "That is easy", "What do you do", "I am a student", "I am a teacher", "I work in a bank",
+    "It is hot today", "It is cold today", "It is sunny", "It is rainy", "It is snowing"
+]
+korean_sentences = [
+    "안녕하세요", "좋은 아침입니다", "좋은 저녁입니다", "어떻게 지내세요", "저는 괜찮아요",
+    "당신의 이름은 무엇인가요", "제 이름은 존입니다", "만나서 반가워요", "나중에 봐요", "감사합니다",
+    "천만에요", "실례합니다", "죄송합니다", "도와주실 수 있나요", "이해하지 못했습니다",
+    "천천히 말해 주세요", "다시 말해 주실 수 있나요", "지금 몇 시인가요", "이것은 얼마인가요", "화장실은 어디인가요",
+    "의사가 필요해요", "경찰을 불러주세요", "저는 배가 고파요", "저는 목이 마릅니다", "저는 피곤해요",
+    "이것은 무엇인가요", "그것은 정말 좋아요", "축하해요", "생일 축하해요", "새해 복 많이 받으세요",
+    "메리 크리스마스", "행운을 빕니다", "잘 지내세요", "여행 잘 다녀오세요", "당신은 몇 살인가요",
+    "결혼하셨나요", "자녀가 있나요", "저는 그것을 좋아합니다", "저는 그것을 좋아하지 않습니다", "이것은 어렵습니다",
+    "그것은 쉽습니다", "당신은 무엇을 하나요", "저는 학생입니다", "저는 선생님입니다", "저는 은행에서일합니다",
+"오늘은 덥습니다", "오늘은 추워요", "오늘은 맑아요", "오늘은 비가 와요", "오늘은 눈이 와요"
+]
+
 windowSize = 2
 dtype = torch.float
-word_list = list(set(" ".join(sentences).split()))
+word_list = list(set(" ".join(english_sentences).split()))
 word_list.sort()    # 매 실행시마다 동일한 word index 번호를 갖게
 word_dict = {w: i for i, w in enumerate(word_list)}
 print('\n','='*80)

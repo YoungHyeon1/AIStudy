@@ -13,10 +13,12 @@ def make_batch(sentences, word_dict):
     word = sen.split()
     input = [word_dict[n] for n in word[:-1]]
     target = word_dict[word[-1]]
-
     input_batch.append(np.eye(len(word_dict))[input])  # One-Hot Encoding
     target_batch.append(target)
-  
+    print(word)
+    print(target_batch)
+    raise
+
   return input_batch, target_batch
 
 
