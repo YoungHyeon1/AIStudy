@@ -7,22 +7,21 @@ dtype = torch.float
 
 class TextRNN(nn.Module):
   forward_pass = 0
-  def __init__(self, n_class, n_hidden, n_output):
+  def __init__(self, n_class, n_hidden):
     super(TextRNN, self).__init__()
           # dropout 옵션은 hidden layer갯숫가 1 초과일때만 사용
     #self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden, dropout=0.3)
           # input_size=n_class : 입력값을 클래스 크기만큼 길이의 one-hot vector로 할거니까
           # hidden_size : hidden layer node 수 = 5 로 미리 정함
-    print(n_class)
     self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden)
           # trainable weight matrix initialized with random values
           # nn.Parameter() : 해당 파라미터가 학습시에 참여하는 weight가 됨
 #     self.W = nn.Parameter(torch.randn([n_hidden, n_class]).type(dtype)) # n_hiddex * n_class 크기 matrix
           # n_class 크기 bias용 vector  
 #     self.b = nn.Parameter(torch.randn([n_class]).type(dtype))
-    self.fc = nn.Linear(n_hidden, n_output)  # 출력을 위한 선형 레이어
+    self.fc = nn.Linear(n_hidden, n_class)  # 출력을 위한 선형 레이어
           # raw 출력값들에 적용할 함수
-    self.Softmax = nn.Softmax(dim=1)
+#     self.Softmax = nn.Softmax(dim=1)
 
   def add_count (self, n=1):
     self.forward_pass += n
@@ -56,7 +55,7 @@ class TextRNN(nn.Module):
 
             # torch.mm() :  matrix multiplication, 실제 계산 출력값을 여기서 리턴
 #     model = torch.mm(last_hidden_vector, self.W) + self.b  
-    model = self.fc(hidden_vectors[:, -1, :])
+    model = self.fc(hidden_vectors)
     self.add_count(1)
     
     return model

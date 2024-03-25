@@ -31,12 +31,14 @@ def train_rnn(totalEpoch) :
     for i in range(len(input_batch)//batch_size):
       inputs = input_batch[i*batch_size:(i+1)*batch_size]
       targets = target_batch[i*batch_size:(i+1)*batch_size]
-
       output = model(hidden, inputs)
     #if epoch == totalEpoch-1 :
       print(f'\n*** Epoch # {epoch}일 때 학습 직후 배치데이터 전체에 대한 output layer 출력값 output:\n{output}')
       print('-'*80)
+      print(len(output))
+      print(len(inputs))
 
+      # output, _ = pad_packed_sequence(output, batch_first=True)
       loss = criterion(output, targets)
 
       if totalEpoch <= 3 or (epoch % 100) == 0:
