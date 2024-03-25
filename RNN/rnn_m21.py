@@ -14,7 +14,6 @@ import torch.optim as optim
 from tqdm import tqdm
 from TextRNN import TextRNN
 from utils import make_batch
-from torch.nn.utils.rnn import pad_sequence
 #=====================================================
 # Rnn Training 함수
 #=====================================================
@@ -32,14 +31,13 @@ def train_rnn(totalEpoch) :
     for i in range(len(input_batch)//batch_size):
       inputs = input_batch[i*batch_size:(i+1)*batch_size]
       targets = target_batch[i*batch_size:(i+1)*batch_size]
-      inputs_padded = pad_sequence(inputs, batch_first=True)
-      targets_padded = pad_sequence(targets, batch_first=True, padding_value=-1)
-      output = model(hidden, inputs_padded)
+
+      output = model(hidden, inputs)
     #if epoch == totalEpoch-1 :
       print(f'\n*** Epoch # {epoch}일 때 학습 직후 배치데이터 전체에 대한 output layer 출력값 output:\n{output}')
       print('-'*80)
 
-      loss = criterion(output, targets_padded)
+      loss = criterion(output, targets)
 
       if totalEpoch <= 3 or (epoch % 100) == 0:
             print('Epoch:', '%04d' % (epoch), 'cost =', '{:.6f}'.format(loss))
@@ -85,7 +83,7 @@ korean_sentences = [
     "메리 크리스마스", "행운을 빕니다", "잘 지내세요", "여행 잘 다녀오세요", "당신은 몇 살인가요",
     "결혼하셨나요", "자녀가 있나요", "저는 그것을 좋아합니다", "저는 그것을 좋아하지 않습니다", "이것은 어렵습니다",
     "그것은 쉽습니다", "당신은 무엇을 하나요", "저는 학생입니다", "저는 선생님입니다", "저는 은행에서일합니다",
-"오늘은 덥습니다", "오늘은 추워요", "오늘은 맑아요", "오늘은 비가 와요", "오늘은 눈이 와요"
+    "오늘은 덥습니다", "오늘은 추워요", "오늘은 맑아요", "오늘은 비가 와요", "오늘은 눈이 와요"
 ]
 
 windowSize = 2
@@ -101,7 +99,7 @@ n_class = len(word_dict)
 # [2] Input, Target batch data 생성
 #=====================================================
       # sentence 문장들로 부터 입력tensor, 출력tensor 구함
-input_batch, target_batch = make_batch(sentences, word_dict)
+input_batch, target_batch = make_batch(english_sentences, korean_sentences)
 input_batch = torch.tensor(np.array(input_batch), dtype=torch.float32, requires_grad=True)
 print('\n','='*80)
 print("input batch:",input_batch)
@@ -139,14 +137,14 @@ if __name__ == "__main__" :
             # 1 : hidden layer 수
             # batch_size : 저장할 hidden matrix의 행, 즉, backward propagation 대상이 되는 time 수
             # n_hidden : hidden matrix의 열, 즉 hidden vector 한개의 노드 수
-      hidden = torch.zeros(1, batch_size, n_hidden, requires_grad=True)
-            # input 값에 대한 prediction 실행
-      for i in range(len(input_batch)//32):
-            predict = model(hidden, input_batch[i*batch_size:(i+1)*batch_size]).data.max(1, keepdim=True)[1]
-            # 결과 출력
-            print('\n','.'*80, '\n[학습후 테스트 결과]\n')
-            print([sen.split()[:2] for sen in sentences], '->', [number_dict[n.item()] for n in predict.squeeze()])
-            # 학습 결과 파일로 저장
+      # hidden = torch.zeros(1, batch_size, n_hidden, requires_grad=True)
+      #       # input 값에 대한 prediction 실행
+      # for i in range(len(input_batch)//32):
+      #       predict = model(hidden, input_batch[i*batch_size:(i+1)*batch_size]).data.max(1, keepdim=True)[1]
+      #       # 결과 출력
+      #       print('\n','.'*80, '\n[학습후 테스트 결과]\n')
+      #       print([sen.split()[:2] for sen in sentences], '->', [number_dict[n.item()] for n in predict.squeeze()])
+      #       # 학습 결과 파일로 저장
       torch.save(model.state_dict(), 'text_rnn.pth')
       
     else :

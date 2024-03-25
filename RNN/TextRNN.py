@@ -7,9 +7,7 @@ dtype = torch.float
 
 class TextRNN(nn.Module):
   forward_pass = 0
-  
-
-  def __init__(self, n_class, n_hidden):
+  def __init__(self, n_class, n_hidden, n_output):
     super(TextRNN, self).__init__()
           # dropout 옵션은 hidden layer갯숫가 1 초과일때만 사용
     #self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden, dropout=0.3)
@@ -19,9 +17,10 @@ class TextRNN(nn.Module):
     self.rnn = nn.RNN(input_size=n_class, hidden_size=n_hidden)
           # trainable weight matrix initialized with random values
           # nn.Parameter() : 해당 파라미터가 학습시에 참여하는 weight가 됨
-    self.W = nn.Parameter(torch.randn([n_hidden, n_class]).type(dtype)) # n_hiddex * n_class 크기 matrix
+#     self.W = nn.Parameter(torch.randn([n_hidden, n_class]).type(dtype)) # n_hiddex * n_class 크기 matrix
           # n_class 크기 bias용 vector  
-    self.b = nn.Parameter(torch.randn([n_class]).type(dtype))
+#     self.b = nn.Parameter(torch.randn([n_class]).type(dtype))
+    self.fc = nn.Linear(n_hidden, n_output)  # 출력을 위한 선형 레이어
           # raw 출력값들에 적용할 함수
     self.Softmax = nn.Softmax(dim=1)
 
@@ -45,8 +44,6 @@ class TextRNN(nn.Module):
           #           (seq_len, batch, hidden_size) = (2, 11, 5)
           # hidden : 마지막 time step 직후의  hidden vector 값 
           #           hidden layer가 다층일 경우에는 layer 층의 갯수 만큼 값을 가짐
-
-
         # 한번의 호출로 한 batch, 모든 시퀀스, 모든 히든벡터에 대한 벡터값들을 리턴
         #   2 시퀀스 * 11 batch * 5 vector nodes 값을
 
@@ -55,11 +52,11 @@ class TextRNN(nn.Module):
     print(f'\n*** hidden_vectors[{self.forward_pass}]: {hidden_vectors}')                                        
     print(f'\n*** hidden[{self.forward_pass}]: {hidden}')                                        
 
-    last_hidden_vector = hidden_vectors[-1]   # many-to-one 모델이므로 hidden 노드중 마지막 노드값만 필요
+#     last_hidden_vector = hidden_vectors[-1]   # many-to-one 모델이므로 hidden 노드중 마지막 노드값만 필요
 
             # torch.mm() :  matrix multiplication, 실제 계산 출력값을 여기서 리턴
-    model = torch.mm(last_hidden_vector, self.W) + self.b  
-    
+#     model = torch.mm(last_hidden_vector, self.W) + self.b  
+    model = self.fc(hidden_vectors[:, -1, :])
     self.add_count(1)
     
     return model

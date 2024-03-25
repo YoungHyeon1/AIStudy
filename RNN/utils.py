@@ -1,25 +1,35 @@
 import numpy as np
 import nltk
 from tqdm import tqdm
+from torch.nn.utils.rnn import pad_sequence
+import torch
 #=====================================================
 # Input Target batch 데이터 생성 함수
 # #===================================================
-def make_batch(sentences, word_dict):
+def make_batch(input_sente, target_sente):
 
   input_batch = []
   target_batch = []
 
-  for sen in sentences:
-    word = sen.split()
-    input = [word_dict[n] for n in word[:-1]]
-    target = word_dict[word[-1]]
-    input_batch.append(np.eye(len(word_dict))[input])  # One-Hot Encoding
-    target_batch.append(target)
-    print(word)
-    print(target_batch)
-    raise
+  input_word_dict = make_word_dict(input_sente)
+  target_word_dict = make_word_dict(target_sente)
 
-  return input_batch, target_batch
+  for input_sen in input_sente:
+    word = input_sen.split()
+    input = [input_word_dict[n] for n in word]
+    input_batch.append(np.eye(len(input_word_dict))[input])  # One-Hot Encoding
+    # print(input_batch)
+    # raise
+  for target_sen in target_sente:
+    word = target_sen.split()
+    target = [target_word_dict[n] for n in word]
+    target_batch.append(np.eye(len(target_word_dict))[target])  # One-Hot Encoding  # for sen in sentences:
+
+  tensor_sequences = [torch.tensor(sequence) for sequence in input_batch]
+  inputs_padded = pad_sequence(tensor_sequences, batch_first=True)
+  tensor_sequences = [torch.tensor(sequence) for sequence in target_batch]
+  targets_padded = pad_sequence(tensor_sequences, batch_first=True, padding_value=-1)
+  return inputs_padded, targets_padded
 
 
 #=======================================================
@@ -47,3 +57,9 @@ def make_windows(cleaned_sentences, windowSize=2) :
   windows = flatten(nltk.ngrams(sentence[:-windowSize].split(' '),windowSize + 1) \
                                       for sentence in tqdm(cleaned_sentences))
   return windows
+
+
+def make_word_dict(word_list: list) -> dict:
+  word_list = list(set(" ".join(word_list).split()))
+  word_list.sort()    # 매 실행시마다 동일한 word index 번호를 갖게
+  return {w: i for i, w in enumerate(word_list)}
